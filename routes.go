@@ -18,4 +18,16 @@ var routes = []Route{
 		"/api/v1/user/{route}",
 		ForwardToUserService,
 	},
+	Route{
+		"DomainCreate",
+		"POST",
+		"/api/v1/domain/create",
+		ForwardToUserService,
+	},
+	Route{
+		"DomainList",
+		"GET",
+		"/api/v1/domain/user/{user_id}",
+		ForwardToUserService,
+	},
 }
