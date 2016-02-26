@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -24,19 +21,7 @@ func DomainCreate(w http.ResponseWriter, r *http.Request) {
 		form.Name,
 		form.Hash,
 	}
-	reqBody, err := json.Marshal(reqForm)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	reqUrl := fmt.Sprintf("http://%s/create", config.DomainServiceHost)
-	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(reqBody))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := DoDomainCreate(reqForm)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,14 +40,37 @@ func DomainList(w http.ResponseWriter, r *http.Request) {
 	if user.Id != userId {
 		http.Error(w, "You cannot access this person's domains!", http.StatusUnauthorized)
 	}
-	reqUrl := fmt.Sprintf("http://%s/user/%s", config.DomainServiceHost, userId)
-	req, err := http.NewRequest("GET", reqUrl, bytes.NewReader([]byte{}))
+	resp, err := DoDomainList(userId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp.Header.Set(AccessTokenHeader, accessToken)
+	ForwardResponse(resp, w)
+}
+
+func DomainDelete(w http.ResponseWriter, r *http.Request) {
+	user, accessToken, err := RequestIsAuthenticated(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	name := mux.Vars(r)["name"]
+	resp, err := DoDomainOwner(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	var owner Owner
+	if err := ReadJsonStruct(resp.Body, &owner); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if user.Id != owner.UserId {
+		http.Error(w, "You cannot access this person's domains!", http.StatusUnauthorized)
+		return
+	}
+	resp, err = DoDomainDelete(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

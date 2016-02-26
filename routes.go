@@ -30,4 +30,10 @@ var routes = []Route{
 		"/api/v1/domain/user/{user_id}",
 		DomainList,
 	},
+	Route{
+		"DomainDelete",
+		"DELETE",
+		"/api/v1/domain/{name}",
+		DomainDelete,
+	},
 }
